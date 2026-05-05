@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ims
+      POSTGRES_PASSWORD: ims
+      POSTGRES_DB: ims
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ims -d ims"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      IMS_ENV: docker
+      IMS_LOG_LEVEL: INFO
+      IMS_DATABASE_URL: postgresql+asyncpg://ims:ims@postgres:5432/ims
+      IMS_REDIS_URL: redis://redis:6379/0
+      IMS_REDIS_SOCKET_TIMEOUT_SECONDS: "15"
+      IMS_CORS_ORIGINS: http://localhost:5173
+      IMS_INGEST_RATE_LIMIT_PER_SEC: "1000"
+      IMS_DEBOUNCE_WINDOW_SECONDS: "10"
+      IMS_METRICS_PRINT_INTERVAL_SECONDS: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: ./backend
+    environment:
+      IMS_ENV: docker
+      IMS_LOG_LEVEL: INFO
+      IMS_DATABASE_URL: postgresql+asyncpg://ims:ims@postgres:5432/ims
+      IMS_REDIS_URL: redis://redis:6379/0
+      IMS_REDIS_SOCKET_TIMEOUT_SECONDS: "15"
+      IMS_DEBOUNCE_WINDOW_SECONDS: "10"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.workers.signal_worker"]
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
+
