@@ -22,6 +22,9 @@ The Incident Management System (IMS) solves this by providing a complete, produc
 
 ## Architecture
 
+
+![Incident Management System Architecture](./docs/architecture.png)
+
 ```
   Monitoring Probes / Load Generators
               |
