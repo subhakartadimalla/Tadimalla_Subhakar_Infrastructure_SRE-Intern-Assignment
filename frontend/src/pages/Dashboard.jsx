@@ -22,13 +22,16 @@ function updatedAtMs(incident) {
 export default function Dashboard() {
   const {
     activeIncidents,
-    loading,
+    loadingList,
     error,
     fetchIncidents,
     clearError,
     stats,
     graphData,
   } = useIncidentStore();
+
+  // Alias for readability below
+  const loading = loadingList;
 
   const intervalRef = useRef(null);
 
