@@ -68,6 +68,9 @@ services:
       context: ./frontend
     environment:
       VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      # Mount source so Vite HMR picks up local edits without rebuilding
+      - ./frontend/src:/app/src
     depends_on:
       - backend
     ports:
